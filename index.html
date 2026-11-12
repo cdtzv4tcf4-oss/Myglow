@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#fff5f7">
+<title>MyGlow</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#fff8f8;color:#59464c;font-family:Arial,sans-serif}
+header{text-align:center;padding:28px 15px 15px}
+h1{font-family:Georgia,serif;font-size:38px;color:#c77f98;margin:5px}
+header p{color:#a98b94;font-size:13px}
+nav{display:flex;justify-content:space-around;background:white;padding:14px 3px;position:sticky;top:0;z-index:2;box-shadow:0 2px 12px #eadde080}
+nav button{border:0;background:none;color:#997c85;font-size:12px;padding:5px}
+nav button.active{color:#ce7895;font-weight:bold}
+main{max-width:550px;margin:auto;padding:18px}
+h2{font-family:Georgia,serif;color:#bd7890;font-size:25px}
+.card{background:white;border-radius:19px;padding:18px;margin:14px 0;box-shadow:0 4px 16px #e9d9df55}
+.small{font-size:13px;color:#a78d95}
+.task{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid #f6e9ed}
+.task:last-child{border:0}
+.task input{accent-color:#d88ba5;width:19px;height:19px}
+.task span{flex:1}
+button.primary{background:#d88ba5;color:white;border:0;border-radius:20px;padding:11px 17px;cursor:pointer}
+button.remove{border:0;background:none;color:#c58b9d;cursor:pointer}
+input[type=text],textarea{width:100%;padding:12px;border:1px solid #eedde3;border-radius:12px;margin:7px 0;font:inherit}
+.progress{height:10px;background:#f4e6eb;border-radius:20px;overflow:hidden}
+.progress div{height:100%;background:#d88ba5;width:0%;transition:.2s}
+.stat{font-size:27px;color:#c77f98;font-family:Georgia,serif}
+.hidden{display:none}
+footer{text-align:center;color:#c4a5af;padding:25px;font-size:12px}
+</style>
+</head>
+<body>
+<header>
+<h1>MyGlow ♡</h1>
+<p>YOUR DAILY SELFCARE JOURNEY</p>
+</header>
+<nav>
+<button class="active" onclick="show('home',this)">♡ Heute</button>
+<button onclick="show('routine',this)">✿ Routinen</button>
+<button onclick="show('progress',this)">☆ Fortschritt</button>
+<button onclick="show('journal',this)">☁ Tagebuch</button>
+</nav>
+<main>
+<section id="home">
+<h2>Welcome to your glow ✨</h2>
+<p class="small" id="date"></p>
+<div class="card">
+<p>Dein heutiger Fortschritt</p>
+<div class="progress"><div id="bar"></div></div>
+<p id="percent" class="small">0 % geschafft</p>
+</div>
+<div class="card">
+<h3>🌸 Morning Routine</h3>
+<div id="morning"></div>
+</div>
+<div class="card">
+<h3>🌙 Evening Routine</h3>
+<div id="evening"></div>
+</div>
+</section>
+
+<section id="routine" class="hidden">
+<h2>My routines 🌷</h2>
+<div class="card">
+<h3>Neue Aufgabe hinzufügen</h3>
+<input id="newtask" type="text" placeholder="z.B. Gesicht eincremen">
+<select id="period">
+<option value="morning">Morgenroutine</option>
+<option value="evening">Abendroutine</option>
+</select>
+<br><br>
+<button class="primary" onclick="addTask()">Hinzufügen +</button>
+</div>
+<div class="card">
+<h3>Deine Morgenroutine</h3>
+<div id="editMorning"></div>
+</div>
+<div class="card">
+<h3>Deine Abendroutine</h3>
+<div id="editEvening"></div>
+</div>
+</section>
+
+<section id="progress" class="hidden">
+<h2>Your progress ♡</h2>
+<div class="card">
+<p>Erledigte Aufgaben heute</p>
+<div class="stat" id="done">0</div>
+<p class="small">Weiter so, du machst das toll!</p>
+</div>
+<div class="card">
+<p>Deine aktuelle Serie 🔥</p>
+<div class="stat" id="streak">0 Tage</div>
+<p class="small">Tage mit mindestens einer erledigten Aufgabe in Folge</p>
+</div>
+<div class="card">
+<p>Gesamte erledigte Aufgaben</p>
+<div class="stat" id="total">0</div>
+</div>
+</section>
+
+<section id="journal" class="hidden">
+<h2>My little diary ☁</h2>
+<div class="card">
+<p>Wie fühlst du dich heute?</p>
+<textarea id="note" rows="7" placeholder="Schreibe deine Gedanken auf ..."></textarea>
+<button class="primary" onclick="saveNote()">Notiz speichern ♡</button>
+<p class="small" id="saved"></p>
+</div>
+</section>
+</main>
+<footer>made with love ♡ MyGlow</footer>
+
+<script>
+const defaults={
+morning:["Aufstehen & Wasser trinken","Gesicht reinigen","Serum auftragen","Feuchtigkeitspflege","Sonnenschutz auftragen"],
+evening:["Make-up entfernen","Gesicht reinigen","Serum auftragen","Nachtcreme auftragen","Zähne putzen"]
+};
+let tasks=JSON.parse(localStorage.getItem("myglowTasks"))||defaults;
+let checks=JSON.parse(localStorage.getItem("myglowChecks"))||{};
+let history=JSON.parse(localStorage.getItem("myglowHistory"))||{};
+let day=new Date().toLocaleDateString("en-CA");
+
+if(checks.date!==day){checks={date:day,items:{}}}
+document.getElementById("date").textContent=new Date().toLocaleDateString("de-DE",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
+
+function save(){
+localStorage.setItem("myglowTasks",JSON.stringify(tasks));
+localStorage.setItem("myglowChecks",JSON.stringify(checks));
+localStorage.setItem("myglowHistory",JSON.stringify(history));
+}
+
+function show(id,button){
+document.querySelectorAll("main section").forEach(s=>s.classList.add("hidden"));
+document.getElementById(id).classList.remove("hidden");
+document.querySelectorAll("nav button").forEach(b=>b.classList.remove("active"));
+button.classList.add("active");
+render();
+}
+
+function toggle(period,index,value){
+checks.items[period+"-"+index]=value;
+if(value) history[day]=true;
+else delete history[day];
+save();render();
+}
+
+function list(period,target,editable=false){
+document.getElementById(target).innerHTML=tasks[period].map((task,i)=>{
+let key=period+"-"+i;
+return `<div class="task">
+${editable?"":`<input type="checkbox" ${checks.items[key]?"checked":""} onchange="toggle('${period}',${i},this.checked)">`}
+<span>${escapeHTML(task)}</span>
+${editable?`<button class="remove" onclick="removeTask('${period}',${i})">✕</button>`:""}
+</div>`;
+}).join("");
+}
+
+function escapeHTML(s){
+return s.replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+
+function addTask(){
+let value=document.getElementById("newtask").value.trim();
+let period=document.getElementById("period").value;
+if(!value)return;
+tasks[period].push(value);
+document.getElementById("newtask").value="";
+save();render();
+}
+
+function removeTask(period,index){
+tasks[period].splice(index,1);
+save();render();
+}
+
+function render(){
+list("morning","morning");
+list("evening","evening");
+list("morning","editMorning",true);
+list("evening","editEvening",true);
+let all=tasks.morning.length+tasks.evening.length;
+let done=Object.values(checks.items).filter(Boolean).length;
+let pct=all?Math.round(done/all*100):0;
+document.getElementById("bar").style.width=pct+"%";
+document.getElementById("percent").textContent=pct+" % geschafft";
+document.getElementById("done").textContent=done;
+document.getElementById("total").textContent=Object.values(history).filter(Boolean).length;
+let streak=0,d=new Date();
+while(history[d.toLocaleDateString("en-CA")]){
+streak++;d.setDate(d.getDate()-1);
+}
+document.getElementById("streak").textContent=streak+" Tage";
+}
+
+function saveNote(){
+localStorage.setItem("myglowNote",document.getElementById("note").value);
+document.getElementById("saved").textContent="Deine Notiz wurde gespeichert ♡";
+}
+document.getElementById("note").value=localStorage.getItem("myglowNote")||"";
+render();
+</script>
+</body>
+</html>
